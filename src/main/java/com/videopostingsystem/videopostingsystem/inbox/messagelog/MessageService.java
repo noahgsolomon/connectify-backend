@@ -5,8 +5,11 @@ import com.videopostingsystem.videopostingsystem.inbox.InboxRepository;
 import com.videopostingsystem.videopostingsystem.inbox.InboxResponseModel;
 import com.videopostingsystem.videopostingsystem.users.UserRepository;
 import com.videopostingsystem.videopostingsystem.users.Users;
+import com.videopostingsystem.videopostingsystem.users.notification.NotificationService;
+import com.videopostingsystem.videopostingsystem.users.notification.NotificationType;
 import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,8 @@ public class MessageService {
     private final UserRepository userRepository;
     private final MessageLogRepository messageLogRepository;
     private final InboxRepository inboxRepository;
+    @Autowired
+    NotificationService notificationService;
 
     public ResponseEntity<?> postMessage(MessageModel messageModel, HttpSession session){
         String user = (String) session.getAttribute("loggedInUser");
@@ -36,6 +41,9 @@ public class MessageService {
         if (userRepository.findById(messageModel.receiver()).isEmpty()){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user provided.");
         }
+        Users userObj = userRepository.findById(user).get();
+        Users receiverObj = userRepository.findById(messageModel.receiver()).get();
+
         if (inboxRepository.findById(user+"_"+messageModel.receiver()).isPresent() || inboxRepository.findById(messageModel.receiver()+"_" +user).isPresent()){
             if (inboxRepository.findById(user+"_"+messageModel.receiver()).isPresent()){
                 Inbox inbox = inboxRepository.findById(user+"_"+messageModel.receiver()).get();
@@ -45,6 +53,7 @@ public class MessageService {
                 MessageLog messageLog = new MessageLog(inbox, user, messageModel.receiver(), messageModel.message());
                 messageLogRepository.save(messageLog);
                 inboxRepository.save(inbox);
+                notificationService.setNotification(userObj, receiverObj, NotificationType.MESSAGE, messageLog.getMessage_id());
                 return ResponseEntity.ok(new MessageResponseModel(messageLog.getMessage_id(), messageLog.getSender(), messageLog.getMessage(), messageLog.getTimeSent()));
             }
             else {
@@ -55,6 +64,7 @@ public class MessageService {
                 MessageLog messageLog = new MessageLog(inbox, user, messageModel.receiver(), messageModel.message());
                 messageLogRepository.save(messageLog);
                 inboxRepository.save(inbox);
+                notificationService.setNotification(userObj, receiverObj, NotificationType.MESSAGE, messageLog.getMessage_id());
                 return ResponseEntity.ok(new MessageResponseModel(messageLog.getMessage_id(), messageLog.getReceiver(), messageLog.getMessage(), messageLog.getTimeSent()));
             }
         }
@@ -64,9 +74,9 @@ public class MessageService {
             inboxRepository.save(inbox);
             MessageLog messageLog = new MessageLog(inbox, user, messageModel.receiver(), messageModel.message());
             messageLogRepository.save(messageLog);
+            notificationService.setNotification(userObj, receiverObj, NotificationType.MESSAGE, messageLog.getMessage_id());
             return ResponseEntity.ok(new MessageResponseModel(messageLog.getMessage_id(), messageLog.getSender(), messageLog.getMessage(), messageLog.getTimeSent()));
         }
-
     }
 
 
@@ -94,6 +104,7 @@ public class MessageService {
         }
         List<MessageResponseModel> formattedMessages = new ArrayList<>();
         for (MessageLog messageLog : messageLogs){
+            notificationService.removeNotification(userRepository.findById(user2).get(), userRepository.findById(user).get(), NotificationType.MESSAGE, messageLog.getMessage_id());
             formattedMessages.add(new
                     MessageResponseModel(messageLog.getMessage_id(), messageLog.getSender(), messageLog.getMessage(), messageLog.getTimeSent()));
         }

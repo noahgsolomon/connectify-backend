@@ -6,8 +6,11 @@ import com.videopostingsystem.videopostingsystem.posts.PostRepository;
 import com.videopostingsystem.videopostingsystem.recommendSystem.FeedService;
 import com.videopostingsystem.videopostingsystem.users.UserRepository;
 import com.videopostingsystem.videopostingsystem.users.Users;
+import com.videopostingsystem.videopostingsystem.users.notification.NotificationService;
+import com.videopostingsystem.videopostingsystem.users.notification.NotificationType;
 import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,9 @@ public class PostInteractionService {
     PostRepository postRepository;
     UserRepository userRepository;
     PostInteractionRepository postInteractionRepository;
+    @Autowired
+    NotificationService notificationService;
+
 
 
     public ResponseEntity<?> postInteraction(Long postId, PostInteractionModel postInteraction, HttpSession session){
@@ -39,6 +45,7 @@ public class PostInteractionService {
             }
             else {
                 if (postInteractionRepository.findById(postId + "_" + loggedInUser).get().isLiked()){
+                    notificationService.removeNotification(user, post.getUsers(), NotificationType.LIKE, postId);
                     post.setLikes(post.getLikes()-1);
                 }
                 if (postInteractionRepository.findById(postId + "_" + loggedInUser).get().isBookmark()){
@@ -51,6 +58,7 @@ public class PostInteractionService {
         }
         if (postInteractionRepository.findById(postId + "_" + loggedInUser).isEmpty()){
             if (postInteraction.liked()){
+                notificationService.setNotification(user, post.getUsers(), NotificationType.LIKE, postId);
                 post.setLikes(post.getLikes()+1);
             }
             if (postInteraction.bookmark()){

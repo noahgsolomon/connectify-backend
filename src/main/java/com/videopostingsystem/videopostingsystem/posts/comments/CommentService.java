@@ -4,9 +4,12 @@ import com.google.gson.Gson;
 import com.videopostingsystem.videopostingsystem.posts.PostRepository;
 import com.videopostingsystem.videopostingsystem.users.UserRepository;
 import com.videopostingsystem.videopostingsystem.users.Users;
+import com.videopostingsystem.videopostingsystem.users.notification.NotificationService;
+import com.videopostingsystem.videopostingsystem.users.notification.NotificationType;
 import jakarta.servlet.http.HttpSession;
 import com.videopostingsystem.videopostingsystem.posts.Post;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,8 @@ public class CommentService {
     PostRepository postRepository;
     CommentRepository commentRepository;
     UserRepository userRepository;
+    @Autowired
+    NotificationService notificationService;
 
     public ResponseEntity<?> createComment(Long postID, String content, HttpSession session) {
         String loggedInUser = (String) session.getAttribute("loggedInUser");
@@ -33,8 +38,10 @@ public class CommentService {
         }
         Post post = postRepository.findById(postID).get();
         Users user = userRepository.findById(loggedInUser).get();
+        Users postOwner = post.getUsers();
         Comment comment = new Comment(post, user, content);
         commentRepository.save(comment);
+        notificationService.setNotification(user, postOwner, NotificationType.COMMENT, comment.getId());
         return ResponseEntity.ok("Created comment!");
     }
 
