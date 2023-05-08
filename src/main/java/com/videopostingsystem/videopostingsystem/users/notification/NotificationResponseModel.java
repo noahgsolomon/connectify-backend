@@ -1,6 +1,6 @@
 package com.videopostingsystem.videopostingsystem.users.notification;
 
-import java.sql.Date;
+import java.util.Date;
 
 public record NotificationResponseModel(String sender, String content, NotificationType type, Date date) {
 }

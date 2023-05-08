@@ -3,8 +3,7 @@ package com.videopostingsystem.videopostingsystem.users.notification;
 import com.videopostingsystem.videopostingsystem.users.Users;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.sql.Date;
+import java.util.Date;
 
 @Entity
 @NoArgsConstructor
@@ -41,6 +40,7 @@ public class Notification {
         this.type = type;
         this.content = content;
         this.relatedObjectId = relatedObjectId;
+        time = new Date();
     }
 
 
